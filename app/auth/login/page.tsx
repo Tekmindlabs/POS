@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Store } from "lucide-react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -19,15 +20,25 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
-      router.push("/dashboard");
+      if (error) {
+        console.error("Login error:", error);
+        toast.error(error.message);
+        return;
+      }
+
+      if (data?.user) {
+        toast.success("Logged in successfully");
+        router.push("/dashboard");
+        router.refresh();
+      }
     } catch (error) {
       console.error("Error logging in:", error);
+      toast.error("An error occurred during login");
     } finally {
       setLoading(false);
     }
