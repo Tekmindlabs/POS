@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,35 +15,53 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+const handleLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+  
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (error) {
-        console.error("Login error:", error);
-        toast.error(error.message);
-        return;
-      }
+    if (error) {
+      console.error("Login error:", error);
+      toast.error(error.message);
+      return;
+    }
 
-      if (data?.user) {
+    if (data?.user) {
+      // Wait for session to be established
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
         toast.success("Logged in successfully");
-        router.push("/dashboard");
-        router.refresh();
+        // Use window.location for a full page reload instead of router
+        window.location.href = "/dashboard";
+      } else {
+        toast.error("Failed to establish session");
       }
-    } catch (error) {
-      console.error("Error logging in:", error);
-      toast.error("An error occurred during login");
-    } finally {
-      setLoading(false);
+    }
+  } catch (error) {
+    console.error("Error logging in:", error);
+    toast.error("An error occurred during login");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  useEffect(() => {
+  const checkSession = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      router.replace("/dashboard");
     }
   };
-
+  
+  checkSession();
+}, [router]);
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <Card className="w-full max-w-md">
