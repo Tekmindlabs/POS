@@ -7,25 +7,27 @@ export async function middleware(req: NextRequest) {
   const supabase = createMiddlewareClient({ req, res });
 
   try {
-    // Refresh session if expired
+    // Refresh the session
+    await supabase.auth.getSession();
+
+    // Get the session after refresh
     const { data: { session }, error } = await supabase.auth.getSession();
     
     console.log("Middleware triggered for path:", req.nextUrl.pathname);
     console.log("Session present:", !!session);
 
     if (error) {
-      console.error("Middleware session error:", error);
+      console.error("Session error:", error);
     }
 
-    // If no session and trying to access protected routes
+    // Protected routes logic
     if (!session && !req.nextUrl.pathname.startsWith('/auth')) {
-      console.log("Redirecting to login - no session");
-      return NextResponse.redirect(new URL('/auth/login', req.url));
+      const redirectUrl = new URL('/auth/login', req.url);
+      return NextResponse.redirect(redirectUrl);
     }
 
-    // If session exists and trying to access auth routes
+    // Auth routes logic
     if (session && req.nextUrl.pathname.startsWith('/auth')) {
-      console.log("Redirecting to dashboard - has session");
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
@@ -35,6 +37,7 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 }
+
 
 export const config = {
   matcher: [

@@ -20,25 +20,38 @@ const handleLogin = async (e: React.FormEvent) => {
   setLoading(true);
   
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // Sign in
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      console.error("Login error:", error);
-      toast.error(error.message);
+    if (authError) {
+      console.error("Login error:", authError);
+      toast.error(authError.message);
       return;
     }
 
-    if (data?.user) {
-      // Wait for session to be established
-      const { data: { session } } = await supabase.auth.getSession();
+    if (authData?.user) {
+      // Get session after sign in
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        toast.error("Failed to establish session");
+        return;
+      }
+
       if (session) {
+        // Set session in localStorage
+        localStorage.setItem('supabase.auth.token', JSON.stringify(session));
+        
         toast.success("Logged in successfully");
-        // Use window.location for a full page reload instead of router
-        window.location.href = "/dashboard";
+        
+        // Use a small delay before redirect to ensure session is saved
+        setTimeout(() => {
+          window.location.href = "/dashboard";
+        }, 500);
       } else {
         toast.error("Failed to establish session");
       }
